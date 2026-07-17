@@ -26,6 +26,8 @@ struct Config {
     fs::path condImageDirectory; // flicker condition images
     std::vector<ImagePaths> trials;
     fs::path outputDirectory = "C://flickerTestOutput"; // where the results csv is output
+    int intervalMode = 1; // 0 = two interval; 1 = single interval (two images, side by side)
+    int displayMode = 1; // 0 = SDR only ; 1 = HDR preferred
 
     // defaults
     double flickerRate = 10.0;  // hz
