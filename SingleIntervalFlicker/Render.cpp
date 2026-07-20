@@ -210,6 +210,8 @@ struct Rect {
     float x0, y0, x1, y1;
 };
 
+
+
 /// <summary>
 /// Map quad vertices from pixel coordinates to NDC
 /// </summary>
@@ -230,6 +232,17 @@ static Rect makeQuadNDC(int x, int y, int w, int h, int screenW, int screenH)
 
     return { x0, y1, x1, y0 };
 }
+
+/// <summary>
+/// Centers a single quad on screen at its native pixel size (no resizing).
+/// </summary>
+static Rect makeCenteredQuadNDC(int texW, int texH, int screenW, int screenH)
+{
+    int x = (screenW - texW) / 2;
+    int y = (screenH - texH) / 2;
+    return makeQuadNDC(x, y, texW, texH, screenW, screenH);
+}
+
 /// <summary>
 /// Calcualtes the image rects based on their texture size. Does NOT resize images - keeps their true pixel size.
 /// Images will sit side by side on same monitor, with a gap between them.
@@ -368,19 +381,26 @@ void Renderer::recordCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, con
                 TEX_L = TEX_DEC_L;
                 TEX_R = TEX_DEC_R;
             }
+
+            Rect rL = makeCenteredQuadNDC(m_textures[TEX_L].width, m_textures[TEX_L].height, m_monitorWidth, m_monitorHeight);
+            Rect rR = makeCenteredQuadNDC(m_textures[TEX_R].width, m_textures[TEX_R].height, m_monitorWidth, m_monitorHeight);
+
             setViewport(0);
-            drawQuad(cmd, TEX_L, FX0, FY0, FX1, FY1);
+            drawQuad(cmd, TEX_L, rL.x0, rL.y0, rL.x1, rL.y1);
             setViewport(m_monitorWidth);
-            drawQuad(cmd, TEX_R, FX0, FY0, FX1, FY1);
+            drawQuad(cmd, TEX_R, rR.x0, rR.y0, rR.x1, rR.y1);
             break;
         }
 
         case FrameScene::Mode::ShowImage:
         {
+            Rect rL = makeCenteredQuadNDC(m_textures[TEX_ORIG_L].width, m_textures[TEX_ORIG_L].height, m_monitorWidth, m_monitorHeight);
+            Rect rR = makeCenteredQuadNDC(m_textures[TEX_ORIG_R].width, m_textures[TEX_ORIG_R].height, m_monitorWidth, m_monitorHeight);
+
             setViewport(0);
-            drawQuad(cmd, TEX_ORIG_L, FX0, FY0, FX1, FY1);
+            drawQuad(cmd, TEX_ORIG_L, rL.x0, rL.y0, rL.x1, rL.y1);
             setViewport(m_monitorWidth);
-            drawQuad(cmd, TEX_ORIG_R, FX0, FY0, FX1, FY1);
+            drawQuad(cmd, TEX_ORIG_R, rR.x0, rR.y0, rR.x1, rR.y1);
             break;
         }
 
