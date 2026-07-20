@@ -29,7 +29,7 @@ This project is the implementation of an ISO Flicker Paradigm experiment using V
 Left monitor                  Right monitor
  ```
 * Identify the image directory and names in the config file. Each image should have 2 permuations per folder, ie `image0_L.ppm` and `image0_R.ppm`.
-Here is an example configuration file (Viewing mode: 0 = stereo, 1 = left only, 2 = right only).
+Here is an example configuration file (Viewing mode: 0 = stereo, 1 = left only, 2 = right only; Display Mode: 0 = SDR only, 1 = HDR preferred; Interval Mode 0 = Two-Interval, 1 = Single-Interval)
 ```
 {
   "Participant ID": "TestID",
@@ -42,6 +42,8 @@ Here is an example configuration file (Viewing mode: 0 = stereo, 1 = left only, 
   "Flicker Rate (Hz)": 5,
   "Wait Time (s)": 2,
   "Image Time (s)": 8,
+  "Display Mode": 0,
+  "Interval Mode": 0,
   "Trials": [
     {
       "Image Name": "image0",

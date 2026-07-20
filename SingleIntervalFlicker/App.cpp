@@ -33,6 +33,8 @@ bool App::init(const std::string& configPath) {
 
     timeoutDuration = m_config.imageTime;
     flickerRate = m_config.flickerRate;
+    m_flickerInterval = 1.0 / flickerRate;
+
     waitTimeoutDuration = m_config.waitTime;
 
     // shuffles the trials and the order of flickers
@@ -61,7 +63,7 @@ bool App::init(const std::string& configPath) {
     glfwSetFramebufferSizeCallback(m_window, framebufferSizeCallback);
 
     // init the renderer
-    if (!m_renderer.init(m_window, m_monitorWidth, m_monitorHeight))
+    if (!m_renderer.init(m_window, m_monitorWidth, m_monitorHeight, m_config.displayMode))
         return false;
 
     // upload the initial texturess (instructionss, and the first trial textures)
@@ -70,7 +72,8 @@ bool App::init(const std::string& configPath) {
 
     // initialize the CSV to track responses
     m_csv.init(m_config.participantID, m_config.participantAge, m_config.participantGender 
-        ,m_config.conditionName,  { "Index", "Image", "Viewing Mode", "Answer", "Actual", "Reaction Time (s)" }, 
+        ,m_config.conditionName, m_config.intervalMode, m_config.displayMode,
+        { "Index", "Image", "Viewing Mode", "Answer", "Actual", "Reaction Time (s)" }, 
         m_config.outputDirectory.string());
 
     m_phase = TrialPhase::StartInstructions;
@@ -113,34 +116,68 @@ FrameScene App::buildScene() const {
 
     switch (m_phase) {
     case TrialPhase::StartInstructions:
+    {
         s.mode = FrameScene::Mode::StartInstructions;
         break;
+    }
 
-    case TrialPhase::ShowImages:
-        s.mode = FrameScene::Mode::ShowImages;
+    case TrialPhase::ShowSideBySideImages:
+    {
+        s.mode = FrameScene::Mode::ShowSingleIntervalImages;
         s.flickerShow = m_flickerShow;
         s.flickerIndex = (m_trialIndex < (int)m_config.trials.size())
             ? m_config.trials[m_trialIndex].flickerIndex : 0;
         break;
+    }
+
+    case TrialPhase::ShowFullFieldImage: {
+        const int flickerIndex = (m_trialIndex < (int)m_config.trials.size())
+            ? m_config.trials[m_trialIndex].flickerIndex : 0;
+        const bool isFlickerInterval = (flickerIndex == m_interTrialImageIndex);
+
+        s.mode = isFlickerInterval ? FrameScene::Mode::ShowFlickerImage
+            : FrameScene::Mode::ShowImage;
+        s.flickerShow = m_flickerShow;
+        break;
+    }
+    case TrialPhase::ShowBuffer:
+    {
+        s.mode = FrameScene::Mode::ShowBuffer;
+        break;
+    }
 
     case TrialPhase::WaitForResponse:
+    {
         s.mode = FrameScene::Mode::WaitForResponse;
         break;
+    }
 
     case TrialPhase::Done:
+    {}
     default:
+    {
         s.mode = FrameScene::Mode::Blank;
         break;
+    }
     }
     return s;
 }
 
 void App::initGame() {
     m_trialIndex = 0;
-    m_phase = TrialPhase::ShowImages;
+    m_interTrialImageIndex = 0;
+
+    if(m_config.intervalMode == 1 ){
+        m_phase = TrialPhase::ShowSideBySideImages;
+    }
+    else {
+        m_phase = TrialPhase::ShowFullFieldImage;
+    }
     m_phaseStart = glfwGetTime();
     m_flickerLast = m_phaseStart;
     m_flickerShow = false;
+
+    
 }
 
 /// <summary>
@@ -150,15 +187,49 @@ void App::update() {
     const double now = glfwGetTime();
     const double elapsed = now - m_phaseStart;
 
-    if (m_phase == TrialPhase::ShowImages) {
+    if (m_phase == TrialPhase::ShowSideBySideImages) {
         if (elapsed >= timeoutDuration) {
             advancePhase();
             return;
         }
-        const double flickerInterval = 1.0 / flickerRate;
-        if (now - m_flickerLast >= flickerInterval) {
+        
+        if (now - m_flickerLast >= m_flickerInterval) {
             m_flickerLast = now;
             m_flickerShow = !m_flickerShow;
+        }
+    }
+
+
+    else if (m_phase == TrialPhase::ShowFullFieldImage) {
+        if (elapsed >= timeoutDuration) {
+            if (m_interTrialImageIndex == 0) {
+                // if it's the first image, show the blank buffer screen next
+                m_interTrialImageIndex++;
+                showBuffer();
+                
+            }
+            else {
+                // second image, advance trial and collect response
+                m_interTrialImageIndex = 0;
+                advancePhase();
+            }
+            return;
+            
+        }
+        if(m_config.trials[m_trialIndex].flickerIndex == m_interTrialImageIndex) { // flicker only if this is the flicker index
+            if (now - m_flickerLast >= m_flickerInterval) {
+                m_flickerLast = now;
+                m_flickerShow = !m_flickerShow;
+            }
+        }
+        else {
+            m_flickerShow = false;
+        }
+    }
+
+    else if (m_phase == TrialPhase::ShowBuffer) {
+        if (elapsed >= waitTimeoutDuration) {
+            showNextImageInTrial();
         }
     }
 
@@ -170,20 +241,47 @@ void App::advancePhase() {
     m_phaseStart = glfwGetTime();
     m_responseStart = m_phaseStart;
 
+
     if ((m_trialIndex + 1) < (int)m_config.trials.size())
         loadTexturesForTrial(m_config.trials[m_trialIndex + 1]);
 }
+
+
+void App::showBuffer() {
+    m_phase = TrialPhase::ShowBuffer;
+    m_phaseStart = glfwGetTime();
+}
+
+void App::showNextImageInTrial() {
+    m_phase = TrialPhase::ShowFullFieldImage;
+    m_phaseStart = glfwGetTime();
+}
+
 /// <summary>
 /// Records user's response in CSV file
 /// </summary>
 /// <param name="key"></param>
 void App::recordResponse(int key) {
-    if (m_phase != TrialPhase::ShowImages && m_phase != TrialPhase::WaitForResponse)
+    // only record response if currently waiting for response, or doing side by side image view
+    // can exit early if in 2 interval mode? ****
+    if (m_phase != TrialPhase::ShowSideBySideImages && m_phase != TrialPhase::WaitForResponse)
         return;
 
     TrialResult result;
     result.imageName = m_config.trials[m_trialIndex].name;
-    result.answer = (key == GLFW_KEY_LEFT) ? 1 : 0; // remember that the mirrors flip the image, so the left key actually refers to the right image and vice versa.
+
+    // if this is in single interval mode, need to flip the answer since it is left/right
+    // in two interval mode, the answer is based on the first vs second image, so no 
+    // need to flip the answer value in that case.
+    if (m_config.intervalMode == 1) {
+        // remember that the mirrors flip the image, so the left key actually refers to the right image and vice versa.
+        result.answer = (key == GLFW_KEY_LEFT) ? 1 : 0;
+    }
+    else {
+        result.answer = (key == GLFW_KEY_LEFT) ? 0 : 1;
+    }
+    
+    
     result.actual = m_config.trials[m_trialIndex].flickerIndex;
     result.index = m_trialIndex;
 
@@ -218,14 +316,28 @@ void App::recordResponse(int key) {
         return;
     }
 
-    // load the textures for the upcoming trial
-    if (m_phase == TrialPhase::ShowImages) loadTexturesForTrial(m_config.trials[m_trialIndex]);
+    // load the textures for the upcoming trial (if the response was recorded 
+    // before the waitforresponse screen)
+    if (
+        m_phase == TrialPhase::ShowSideBySideImages 
+        && (m_trialIndex + 1) < (int)m_config.trials.size()
+        ) 
+    {
+        loadTexturesForTrial(m_config.trials[m_trialIndex]);
+    }
 
-    m_phase = TrialPhase::ShowImages;
+    if (m_config.intervalMode == 1) { // single interval mode 
+        m_phase = TrialPhase::ShowSideBySideImages;
+    }
+    else { // 2 interval mode
+        m_phase = TrialPhase::ShowFullFieldImage;
+    }
+
     m_phaseStart = glfwGetTime();
     m_responseStart = m_phaseStart;
     m_flickerShow = false;
     m_flickerLast = m_phaseStart;
+    
 }
 
 /// <summary>
@@ -260,9 +372,16 @@ void App::pollGamepad() {
 /// These are loaded once per program lifecycle, and are kept as unchanging textures throughout.
 /// </summary>
 void App::loadInstructionsTextures() {
-    m_renderer.uploadTexture(TEX_WAIT_L, "./assets/instructions/responsescreen_L.ppm");
+    if (m_config.intervalMode == 0) { // 2 interval mode, load "first or second image?" for response
+        m_renderer.uploadTexture(TEX_WAIT_L, "./assets/instructions/responsescreen0_L.ppm");
+        m_renderer.uploadTexture(TEX_WAIT_R, "./assets/instructions/responsescreen0_R.ppm");
+    }
+    else { // single interval mode, load "left or right image?" for response 
+        m_renderer.uploadTexture(TEX_WAIT_L, "./assets/instructions/responsescreen1_L.ppm");
+        m_renderer.uploadTexture(TEX_WAIT_R, "./assets/instructions/responsescreen1_R.ppm");
+    }
+
     m_renderer.uploadTexture(TEX_START_L, "./assets/instructions/startscreen_L.ppm");
-    m_renderer.uploadTexture(TEX_WAIT_R, "./assets/instructions/responsescreen_R.ppm");
     m_renderer.uploadTexture(TEX_START_R, "./assets/instructions/startscreen_R.ppm");
 }
 

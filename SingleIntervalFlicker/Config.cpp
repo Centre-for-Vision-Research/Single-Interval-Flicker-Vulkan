@@ -32,6 +32,7 @@ bool Config::load(const std::string& configPath) {
     std::filesystem::path p(condImageDirectory);
     conditionName = p.filename().string();
 
+    // these are technically 'optional' as they have hardcoded defaults in the config struct
     if (j.contains("Output Directory")) {
         outputDirectory = j["Output Directory"].get<std::string>();
     }
@@ -45,8 +46,16 @@ bool Config::load(const std::string& configPath) {
         imageTime = j["Image Time (s)"].get<double>();
     }
    
-    if (j.contains("TargetFPS")) {
-        targetFPS = j["TargetFPS"].get<float>();
+    if (j.contains("Target FPS")) {
+        targetFPS = j["Target FPS"].get<int>();
+    }
+
+    if (j.contains("Display Mode")) {
+        displayMode = j["Display Mode"].get<int>();
+    }
+
+    if (j.contains("Interval Mode")) {
+        intervalMode = j["Interval Mode"].get<int>();
     }
 
     if (!fs::exists(origImageDirectory) || !fs::is_directory(origImageDirectory)) {
