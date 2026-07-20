@@ -43,7 +43,7 @@ public:
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
  
-    bool init(GLFWwindow* window, int monitorWidth, int monitorHeight);
+    bool init(GLFWwindow* window, int monitorWidth, int monitorHeight, int displayMode);
  
     void uploadTexture(TextureSlot slot, const std::string& path);
 
@@ -135,6 +135,9 @@ private:
     // size of ONE monitor
     int m_monitorWidth = 0;
     int m_monitorHeight = 0;
+
+    // config if in sdr/hdr mode
+    bool m_isHDR = false;
 
     // core vulkan objs
     VkInstance m_instance = VK_NULL_HANDLE;

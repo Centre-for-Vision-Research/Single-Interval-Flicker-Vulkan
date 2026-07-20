@@ -37,7 +37,7 @@ static const std::vector<const char*> VALIDATION_LAYERS = {
 // ensure that the GPU supports swapchains and HDR metadata
 static const std::vector<const char*> DEVICE_EXTENSIONS = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    VK_EXT_HDR_METADATA_EXTENSION_NAME,
+    //VK_EXT_HDR_METADATA_EXTENSION_NAME, no longer needed
 };
 
 // crosshair geometry (t -> thickness, s -> size/ half length)
@@ -112,9 +112,12 @@ Renderer::~Renderer() {
 /// <param name="monitorWidth"> Width of monitors, (they are asssumed to be the same), passed down by App.</param>
 /// <param name="monitorHeight"> Height of monitors, (they are asssumed to be the same), passed down by App.</param>
 /// <returns> True if successful init, false otherwise. </returns>
-bool Renderer::init(GLFWwindow* window, int monitorWidth, int monitorHeight) {
+bool Renderer::init(GLFWwindow* window, int monitorWidth, int monitorHeight, int displayMode) {
     m_monitorWidth = monitorWidth;
     m_monitorHeight = monitorHeight;
+
+    m_isHDR = displayMode == 0 ? false : true;
+
 
     createInstance(); // root vulkan object
     if (ENABLE_VALIDATION) setupDebugMessenger(); // debug callbacks 
@@ -207,6 +210,8 @@ struct Rect {
     float x0, y0, x1, y1;
 };
 
+
+
 /// <summary>
 /// Map quad vertices from pixel coordinates to NDC
 /// </summary>
@@ -227,6 +232,17 @@ static Rect makeQuadNDC(int x, int y, int w, int h, int screenW, int screenH)
 
     return { x0, y1, x1, y0 };
 }
+
+/// <summary>
+/// Centers a single quad on screen at its native pixel size (no resizing).
+/// </summary>
+static Rect makeCenteredQuadNDC(int texW, int texH, int screenW, int screenH)
+{
+    int x = (screenW - texW) / 2;
+    int y = (screenH - texH) / 2;
+    return makeQuadNDC(x, y, texW, texH, screenW, screenH);
+}
+
 /// <summary>
 /// Calcualtes the image rects based on their texture size. Does NOT resize images - keeps their true pixel size.
 /// Images will sit side by side on same monitor, with a gap between them.
@@ -267,10 +283,9 @@ void Renderer::recordCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, con
     bi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     vkBeginCommandBuffer(cmd, &bi); // begin the command buffer, start recording
 
-    // render pass (clears frame buffer to black)
+    // render pass (clears frame buffer to grey)
     VkClearValue clearColor{};
-    clearColor.color = { 0.0f, 0.0f, 0.0f, 1.0f };
-
+    clearColor.color = { 0.0f,0.0f,0.0f, 1.0f };
     VkRenderPassBeginInfo rpi{};
     rpi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     rpi.renderPass = m_renderPass;
@@ -319,7 +334,8 @@ void Renderer::recordCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, con
 
     // choose what to display based on the mode passed
     switch (scene.mode) {
-        case FrameScene::Mode::ShowImages: {
+        case FrameScene::Mode::ShowSingleIntervalImages: {
+            // Single interval image mode is 1 trial with both images, side by side.
             // left monitor
             setViewport(0);
             TextureSlot TEX_IMAGE0_L = TEX_ORIG_L;
@@ -351,24 +367,74 @@ void Renderer::recordCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, con
             drawQuad(cmd, TEX_IMAGE1_R, right1.x0, right1.y0, right1.x1, right1.y1);
             break;
         }
-        // draw full screen quads for these modes
+        // ******************** draw full screen quads for these modes
+
+
+       // ********** two interval modes                                                      
+        case FrameScene::Mode::ShowFlickerImage:
+        {
+            TextureSlot TEX_L = TEX_ORIG_L;
+            TextureSlot TEX_R = TEX_ORIG_R;
+
+            if (scene.flickerShow) {
+                // if this frame is supposed to be a flickered, degraded frame:
+                TEX_L = TEX_DEC_L;
+                TEX_R = TEX_DEC_R;
+            }
+
+            Rect rL = makeCenteredQuadNDC(m_textures[TEX_L].width, m_textures[TEX_L].height, m_monitorWidth, m_monitorHeight);
+            Rect rR = makeCenteredQuadNDC(m_textures[TEX_R].width, m_textures[TEX_R].height, m_monitorWidth, m_monitorHeight);
+
+            setViewport(0);
+            drawQuad(cmd, TEX_L, rL.x0, rL.y0, rL.x1, rL.y1);
+            setViewport(m_monitorWidth);
+            drawQuad(cmd, TEX_R, rR.x0, rR.y0, rR.x1, rR.y1);
+            break;
+        }
+
+        case FrameScene::Mode::ShowImage:
+        {
+            Rect rL = makeCenteredQuadNDC(m_textures[TEX_ORIG_L].width, m_textures[TEX_ORIG_L].height, m_monitorWidth, m_monitorHeight);
+            Rect rR = makeCenteredQuadNDC(m_textures[TEX_ORIG_R].width, m_textures[TEX_ORIG_R].height, m_monitorWidth, m_monitorHeight);
+
+            setViewport(0);
+            drawQuad(cmd, TEX_ORIG_L, rL.x0, rL.y0, rL.x1, rL.y1);
+            setViewport(m_monitorWidth);
+            drawQuad(cmd, TEX_ORIG_R, rR.x0, rR.y0, rR.x1, rR.y1);
+            break;
+        }
+
+        // ********** shared between both interval modes 
         case FrameScene::Mode::StartInstructions:
+        {
             setViewport(0);
             drawQuad(cmd, TEX_START_L, FX0, FY0, FX1, FY1);
-            setViewport(m_monitorWidth); 
+            setViewport(m_monitorWidth);
             drawQuad(cmd, TEX_START_R, FX0, FY0, FX1, FY1);
             break;
+        }
 
         case FrameScene::Mode::WaitForResponse:
+        {
             setViewport(0);
             drawQuad(cmd, TEX_WAIT_L, FX0, FY0, FX1, FY1);
-            setViewport(m_monitorWidth); 
+            setViewport(m_monitorWidth);
             drawQuad(cmd, TEX_WAIT_R, FX0, FY0, FX1, FY1);
             break;
+        }
+
+        case FrameScene::Mode::ShowBuffer:
+        {
+            // clear already handled by render pass
+            // same as blank, added for code readability or to add a possible 'fixation' screen between
+            break;
+        }
 
         case FrameScene::Mode::Blank:
+        {
             // clear already handled by render pass
             break;
+        }
     }
 
     // draw the crosshair
@@ -488,7 +554,7 @@ void Renderer::uploadTexture(TextureSlot slot, const std::string& path) {
     VkFormat fmt;
     cv::Mat  upload;
 
-    if (isHDR) {
+    if (isHDR && m_isHDR) {
         cv::Mat rgba;
         cv::cvtColor(img, rgba, cv::COLOR_RGB2RGBA);
         rgba.convertTo(upload, CV_16F);
@@ -796,18 +862,28 @@ void Renderer::createLogicalDevice() {
 /// <returns></returns>
 VkSurfaceFormatKHR Renderer::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& available)
 {
-    for (auto& f : available) { // bgr and HDR10
-        if (f.format == VK_FORMAT_A2B10G10R10_UNORM_PACK32 &&
-            f.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT) return f;
+    if (!m_isHDR) {
+        for (auto& f : available) { // SRGB preferred
+            if (f.format == VK_FORMAT_R16G16B16A16_SFLOAT &&
+                f.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT) return f;
+        }
+
     }
-    for (auto& f : available) { // rgb and HDR10
-        if (f.format == VK_FORMAT_A2R10G10B10_UNORM_PACK32 &&
-            f.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT) return f;
+    else { // check for HDR support if HDR is preferred
+        for (auto& f : available) { // bgr and HDR10
+            if (f.format == VK_FORMAT_A2B10G10R10_UNORM_PACK32 &&
+                f.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT) return f;
+        }
+        for (auto& f : available) { // rgb and HDR10
+            if (f.format == VK_FORMAT_A2R10G10B10_UNORM_PACK32 &&
+                f.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT) return f;
+        }
+        for (auto& f : available) { // SRGB fallback
+            if (f.format == VK_FORMAT_R16G16B16A16_SFLOAT &&
+                f.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT) return f;
+        }
     }
-    for (auto& f : available) { // SRGB fallback
-        if (f.format == VK_FORMAT_R16G16B16A16_SFLOAT &&
-            f.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT) return f;
-    }
+    
     return available[0];
 }
 

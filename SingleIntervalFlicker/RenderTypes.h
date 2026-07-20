@@ -26,15 +26,18 @@ enum TextureSlot : int {
 // The renderer translates this into Vulkan draw calls.
 struct FrameScene {
     enum class Mode {
-        StartInstructions,   // TEX_START_L / TEX_START_R
-        ShowImages,          // TEX_ORIG_L/R, plus optional degraded overlay
-        WaitForResponse,     // TEX_WAIT_L / TEX_WAIT_R
-        Blank                // clear to black, crosshair only
+        StartInstructions,         // TEX_START_L / TEX_START_R
+        ShowSingleIntervalImages,  // TEX_ORIG_L/R, plus optional degraded overlay
+        ShowFlickerImage,          // fullscreen TEX_DEC_L/R — this interval holds the degraded stim. overlay original on flicker times
+        ShowImage,                 // fullscreen TEX_ORIG_L/R — this interval holds the original
+        WaitForResponse,           // TEX_WAIT_L / TEX_WAIT_R
+        ShowBuffer,                // Show the buffer grey screen between images within same trial
+        Blank                      // clear to black, crosshair only
     };
 
     Mode mode = Mode::Blank;
 
-    // Only used when mode == ShowImages:
+    // Only used when mode == ShowSingleIntervalImages:
     //  flickerShow == true --> overlay flicker image on top of originals
     //  flickerIndex == 0 --> degraded on image0 slot, original on image1 slot
     //  flickerIndex != 0 --> degraded on image1 slot, original on image0 slot
@@ -43,4 +46,5 @@ struct FrameScene {
 
     // crosshair is always drawn
     bool drawCrosshair = true;
+    
 };

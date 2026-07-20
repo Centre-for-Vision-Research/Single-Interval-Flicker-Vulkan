@@ -15,7 +15,9 @@
 
 enum class TrialPhase {
     StartInstructions,
-    ShowImages,
+    ShowSideBySideImages,
+    ShowFullFieldImage,
+    ShowBuffer,
     WaitForResponse,
     Done
 };
@@ -46,6 +48,8 @@ private:
     void advancePhase();
     void recordResponse(int key);
     void pollGamepad();
+    void showBuffer();
+    void showNextImageInTrial();
 
     // translate current phase + flicker state into a scene description
     // so that the renderer can draw
@@ -68,6 +72,11 @@ private:
     Renderer m_renderer; // backend renderer
     Config m_config;
     int m_trialIndex = 0;
+
+    // used when in two interval mode. tracks whether 
+    // the first or second image within a trial has been shown. 0 or 1
+    int m_interTrialImageIndex = 0; 
+
     std::vector<TrialResult> m_results;
 
     // experiment timing
@@ -83,6 +92,8 @@ private:
     // flicker bool (is this frame a flicker frame?)
     double m_flickerLast = 0.0;
     bool   m_flickerShow = false;
+
+    double m_flickerInterval = 0; // how long to show image before flickering 
 
     // gamepad edge detection
     bool m_prevGamepadA = false;
