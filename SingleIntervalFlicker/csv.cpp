@@ -10,9 +10,12 @@ CSV::~CSV() {
     close();
 }
 
-bool CSV::init(const std::string& participantId, const std::string& participantAge, const std::string& participantGender, const std::string& experimentName,  const std::vector<std::string>& headers, const std::string& outputDirectory = "") {
+bool CSV::init(const std::string& participantId, const std::string& participantAge,
+    const std::string& participantGender, const std::string& experimentName,
+    const int intervalMode, const int displayMode,
+    const std::vector<std::string>& headers, const std::string& outputDirectory ="") {
     
-    fs::path outPath = buildPath(participantId, experimentName, outputDirectory);
+    fs::path outPath = buildPath(participantId, experimentName, intervalMode,displayMode, outputDirectory);
 
     m_file.open(outPath);
     if (!m_file.is_open()) {
@@ -60,7 +63,8 @@ void CSV::close() {
     if (m_file.is_open()) m_file.close();
 }
 
-fs::path CSV::buildPath(const std::string& participantId, const std::string& experimentName, const std::string& outputDir) const {
+fs::path CSV::buildPath(const std::string& participantId, const std::string& experimentName, 
+    const int intervalMode, const int displayMode,const std::string& outputDir) const {
     fs::path dir = outputDir.empty() ? fs::current_path() : fs::path(outputDir);
 
     // create the directory if it doesn't exist
@@ -71,7 +75,12 @@ fs::path CSV::buildPath(const std::string& participantId, const std::string& exp
     std::string sanitizedExperimentName = experimentName;
     std::replace(sanitizedExperimentName.begin(), sanitizedExperimentName.end(), ' ', '-');
 
-    std::string base = sanitizedExperimentName +  "_" + participantId + "_" + getDateString();
+    std::string intervalModeString = intervalMode == 0 ? "two-interval" : "single-interval";
+    std::string displayModeString = displayMode == 0 ? "SDR" : "HDR";
+
+    std::string base = intervalModeString + "_" + displayModeString + "_" + 
+        sanitizedExperimentName + "_" + participantId + "_" + getDateString();
+
     int counter = 0;
     fs::path outPath;
 
