@@ -42,6 +42,8 @@ Here is an example configuration file (Viewing mode: 0 = stereo, 1 = left only, 
   "Flicker Rate (Hz)": 5,
   "Wait Time (s)": 2,
   "Image Time (s)": 8,
+  "Display Mode": 0,
+  "Interval Mode": 0,
   "Trials": [
     {
       "Image Name": "image0",
