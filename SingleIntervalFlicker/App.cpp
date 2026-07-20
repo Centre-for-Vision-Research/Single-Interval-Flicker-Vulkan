@@ -72,7 +72,8 @@ bool App::init(const std::string& configPath) {
 
     // initialize the CSV to track responses
     m_csv.init(m_config.participantID, m_config.participantAge, m_config.participantGender 
-        ,m_config.conditionName,  { "Index", "Image", "Viewing Mode", "Answer", "Actual", "Reaction Time (s)" }, 
+        ,m_config.conditionName, m_config.intervalMode, m_config.displayMode,
+        { "Index", "Image", "Viewing Mode", "Answer", "Actual", "Reaction Time (s)" }, 
         m_config.outputDirectory.string());
 
     m_phase = TrialPhase::StartInstructions;
