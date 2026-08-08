@@ -1,13 +1,9 @@
 #include "App.h"
-#include <Windows.h>
-#include <filesystem>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <shlobj.h>
-#include <sstream>
-#include "selectVariantDialog.h"
+#include "ParticipantDialog.h"
 
+#include <Windows.h>
+#include <iostream>
+#include <string>
 
 int main(int argc, char** argv)
 {
@@ -17,16 +13,44 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    std::string configPath = argv[1];
+    // sets defaults 
+
+    std::string configPath = (argc > 1) ? argv[1] : "./config.json";
+
+    std::string participantsPath = (argc > 2) ? argv[2] : "./participants.csv";
+
+    std::string trialsPath = (argc > 3) ? argv[3] : "./trials.csv";
 
     App app;
 
-    if (!app.init(configPath))
+   
+
+    // ask for participat/session/block information
+
+    ExperimentInfo experimentInfo;
+
+    HINSTANCE hInstance = GetModuleHandle(nullptr);
+
+    if (!ShowParticipantDialog(hInstance, experimentInfo)) // cancelled
     {
-        std::cerr << "Failed to initialize app with config: " << configPath << "\n";
+        std::cout << "Experiment cancelled.\n";
+        return 0;
+    }
+
+    // start experiment
+
+
+    if (!app.init(configPath, trialsPath, experimentInfo))
+    {
+        std::cerr
+            << "Failed to initialize app with config: "
+            << configPath
+            << "\n";
+
         return -1;
     }
 
     app.run();
+
     return 0;
 }

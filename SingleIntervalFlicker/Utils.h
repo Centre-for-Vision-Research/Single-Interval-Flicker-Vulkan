@@ -25,28 +25,29 @@ namespace Utils
 			exit(1);
 		}
 	}
+	// commented out - trial and flicker order determined by trials.csv
 
-	static void ShuffleTrials(std::vector<ImagePaths>& trials)
-	{
-		// shuffle the order of the flickers
-		std::random_device rd;
-		std::mt19937 gen(rd());
+	//static void ShuffleTrials(std::vector<ImagePaths>& trials)
+	//{
+	//	// shuffle the order of the flickers
+	//	std::random_device rd;
+	//	std::mt19937 gen(rd());
 
-		std::shuffle(trials.begin(), trials.end(), gen);
-	}
+	//	std::shuffle(trials.begin(), trials.end(), gen);
+	//}
 
-	static void ShuffleFlickers(std::vector<ImagePaths>& trials)
-	{
-		// iterate through the trials, randomize the flicker to be shown either first or second
-		std::random_device rd;
-		static std::mt19937 gen(rd());
-		static std::uniform_int_distribution<int> dist(0, 1);
+	//static void ShuffleFlickers(std::vector<ImagePaths>& trials)
+	//{
+	//	// iterate through the trials, randomize the flicker to be shown either first or second
+	//	std::random_device rd;
+	//	static std::mt19937 gen(rd());
+	//	static std::uniform_int_distribution<int> dist(0, 1);
 
-		for (auto& n : trials) {
-			n.flickerIndex = dist(gen);
-		}
-		return;
-	}
+	//	for (auto& n : trials) {
+	//		n.flickerIndex = dist(gen);
+	//	}
+	//	return;
+	//}
 
 	// calculate the radius of the foveal view based off screen size, viewing distance, and given foveal width (degrees)
 	static float degreesToRadiusPx(float degrees, float viewingDistanceMeters, float screenWidthMeters, float screenWidthPixels)

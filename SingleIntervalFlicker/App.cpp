@@ -5,7 +5,7 @@
 #include <chrono>
 #include <stdexcept>
 #include <thread>
-
+#include "ParticipantDialog.h"
 #pragma comment(lib, "winmm.lib")
 
 /// <summary>
@@ -24,8 +24,13 @@ App::~App() {
 /// </summary>
 /// <param name="configPath">Location of config file. Defaults to 'config.json' in .exe location. </param>
 /// <returns>True if app successsfully initialized. False otherwise. </returns>
-bool App::init(const std::string& configPath) {
+bool App::init(const std::string& configPath, std::string& trialsPath, ExperimentInfo experimentInfo) {
     if (!m_config.load(configPath)) return false;
+    if (!m_config.loadTrials(trialsPath)) return false;
+
+    m_experimentInfo = experimentInfo;
+
+
     if (m_config.trials.empty()) {
         Utils::FatalError("[App] No trials in config.");
         return false;
@@ -38,8 +43,9 @@ bool App::init(const std::string& configPath) {
     waitTimeoutDuration = m_config.waitTime;
 
     // shuffles the trials and the order of flickers
-    Utils::ShuffleTrials(m_config.trials);
-    Utils::ShuffleFlickers(m_config.trials);
+    // commented out: trial order determined by trials.csv
+    //Utils::ShuffleTrials(m_config.trials);
+    //Utils::ShuffleFlickers(m_config.trials);
 
     // *************** GLFW init and window creation **********************
     if (!glfwInit()) { Utils::FatalError("[App] GLFW init failed"); return false; }
@@ -71,9 +77,27 @@ bool App::init(const std::string& configPath) {
     loadTexturesForTrial(m_config.trials[0]);
 
     // initialize the CSV to track responses
-    m_csv.init(m_config.participantID, m_config.participantAge, m_config.participantGender 
-        ,m_config.conditionName, m_config.intervalMode, m_config.displayMode,
-        { "Index", "Image", "Viewing Mode", "Answer", "Actual", "Reaction Time (s)" }, 
+    m_csv.init(
+        m_experimentInfo.participantId,
+        m_experimentInfo.age,
+        m_experimentInfo.gender,
+        m_experimentInfo.block,
+        m_experimentInfo.session,
+        m_experimentInfo.group,
+        m_config.intervalMode,
+        m_config.displayMode,
+            { 
+                "Index",
+                "Codec",
+                "Image", 
+                "Answer", 
+                "Position-X", 
+                "Position-Y",
+                "Mode",
+                "Response",
+                "Duration (ms)",
+                "Subject"
+            },
         m_config.outputDirectory.string());
 
     m_phase = TrialPhase::StartInstructions;
@@ -252,9 +276,25 @@ void App::showBuffer() {
     m_phaseStart = glfwGetTime();
 }
 
+//void App::showNextImageInTrial() {
+//    m_phase = TrialPhase::ShowFullFieldImage;
+//    m_phaseStart = glfwGetTime();
+//}
+// added buffer between single interval mode early exit
 void App::showNextImageInTrial() {
-    m_phase = TrialPhase::ShowFullFieldImage;
-    m_phaseStart = glfwGetTime();
+    if (m_config.intervalMode == 1) {
+        // single interval mode
+        m_phase = TrialPhase::ShowSideBySideImages;
+        m_phaseStart = glfwGetTime();
+        m_responseStart = m_phaseStart;
+        m_flickerShow = false;
+        m_flickerLast = m_phaseStart;
+    }
+    else {
+        // 2 interval mode
+        m_phase = TrialPhase::ShowFullFieldImage;
+        m_phaseStart = glfwGetTime();
+    }
 }
 
 /// <summary>
@@ -263,12 +303,15 @@ void App::showNextImageInTrial() {
 /// <param name="key"></param>
 void App::recordResponse(int key) {
     // only record response if currently waiting for response, or doing side by side image view
-    // can exit early if in 2 interval mode? ****
+  
     if (m_phase != TrialPhase::ShowSideBySideImages && m_phase != TrialPhase::WaitForResponse)
         return;
 
     TrialResult result;
     result.imageName = m_config.trials[m_trialIndex].name;
+    result.codec = m_config.trials[m_trialIndex].codec;
+    result.positionX = m_config.trials[m_trialIndex].positionX;
+    result.positionY = m_config.trials[m_trialIndex].positionY;
 
     // if this is in single interval mode, need to flip the answer since it is left/right
     // in two interval mode, the answer is based on the first vs second image, so no 
@@ -291,22 +334,31 @@ void App::recordResponse(int key) {
     // translate viewing mode into name data
     switch (m_config.trials[m_trialIndex].viewingMode) {
         case 0:  result.viewingMode = "Stereo"; break;
-        case 1:  result.viewingMode = "Left";   break;
-        case 2:  result.viewingMode = "Right";  break;
+        case 1:  result.viewingMode = "Mono Left";   break;
+        case 2:  result.viewingMode = "Mono Right";  break;
         default: result.viewingMode = "N/A";    break;
     }
+    if (m_config.intervalMode == 0) { // 2 interval mode - start counting reaction tiome from response start
+        result.reactionTimeMS = (glfwGetTime() - m_responseStart) * 1000; // get time in ms
 
-    // do we need reaction time???
-    result.reactionTime = glfwGetTime() - m_responseStart;
+    }else{ // single interval mode - start counting reaction time from image shown
+        result.reactionTimeMS = (glfwGetTime() - m_phaseStart) * 1000; // get time in ms
+    }
+    
     m_results.push_back(result);
 
-    m_csv.writeRow({
+    m_csv.writeRow(
+        {
         std::to_string(result.index),
+        result.codec,
         result.imageName,
-        result.viewingMode,
         std::to_string(result.answer),
+        std::to_string(result.positionX),
+        std::to_string(result.positionY),
+        result.viewingMode,
         std::to_string(result.actual),
-        std::to_string(result.reactionTime)
+        std::to_string(result.reactionTimeMS),
+        m_experimentInfo.participantId
     });
 
     m_trialIndex++;
@@ -318,16 +370,14 @@ void App::recordResponse(int key) {
 
     // load the textures for the upcoming trial (if the response was recorded 
     // before the waitforresponse screen)
-    if (
-        m_phase == TrialPhase::ShowSideBySideImages 
-        && (m_trialIndex + 1) < (int)m_config.trials.size()
-        ) 
+    if (m_phase == TrialPhase::ShowSideBySideImages)
     {
         loadTexturesForTrial(m_config.trials[m_trialIndex]);
     }
 
     if (m_config.intervalMode == 1) { // single interval mode 
-        m_phase = TrialPhase::ShowSideBySideImages;
+        //m_phase = TrialPhase::ShowSideBySideImages;
+        showBuffer();
     }
     else { // 2 interval mode
         m_phase = TrialPhase::ShowFullFieldImage;
