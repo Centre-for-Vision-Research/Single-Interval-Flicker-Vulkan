@@ -136,7 +136,7 @@ void App::run() {
 /// </returns>
 FrameScene App::buildScene() const {
     FrameScene s;
-    s.drawCrosshair = true;
+    s.drawCrosshair = false;
 
     switch (m_phase) {
     case TrialPhase::StartInstructions:
