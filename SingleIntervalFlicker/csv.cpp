@@ -10,12 +10,12 @@ CSV::~CSV() {
     close();
 }
 
-bool CSV::init(const std::string& participantId, const std::string& participantAge,
-    const std::string& participantGender, const std::string& experimentName,
-    const int intervalMode, const int displayMode,
+bool CSV::init(const std::string& participantId, const int participantAge,
+    const char participantGender, const int blockNumber, const int sessionNumber, 
+    const int groupNumber,const int intervalMode, const int displayMode,
     const std::vector<std::string>& headers, const std::string& outputDirectory ="") {
     
-    fs::path outPath = buildPath(participantId, experimentName, intervalMode,displayMode, outputDirectory);
+    fs::path outPath = buildPath(participantId, blockNumber, sessionNumber, groupNumber, outputDirectory);
 
     m_file.open(outPath);
     if (!m_file.is_open()) {
@@ -23,11 +23,18 @@ bool CSV::init(const std::string& participantId, const std::string& participantA
         return false;
     }
 
+    std::string intervalModeString = intervalMode == 0 ? "two-interval" : "single-interval";
+    std::string displayModeString = displayMode == 0 ? "SDR" : "HDR";
+
     // metadata
-    m_file << "Experiment: " << experimentName << "\n";
     m_file << "Participant ID: " << participantId << "\n";
     m_file << "Participant Age: " << participantAge << "\n";
     m_file << "Participant Gender: " << participantGender << "\n";
+    m_file << "Group Number: " << groupNumber << "\n";
+    m_file << "Session Number: " << sessionNumber << "\n";
+    m_file << "Block Number: " << blockNumber << "\n";
+    m_file << "Display Mode: " << displayModeString << "\n";
+    m_file << "Interval Mode: " << intervalModeString << "\n";
     m_file << "Start Time: " << getDateTimeString() << "\n";
     m_file << "\n";
 
@@ -63,23 +70,17 @@ void CSV::close() {
     if (m_file.is_open()) m_file.close();
 }
 
-fs::path CSV::buildPath(const std::string& participantId, const std::string& experimentName, 
-    const int intervalMode, const int displayMode,const std::string& outputDir) const {
+fs::path CSV::buildPath(const std::string& participantId, const int blockNumber, const int sessionNumber,
+    const int groupNumber, const std::string& outputDir) const {
     fs::path dir = outputDir.empty() ? fs::current_path() : fs::path(outputDir);
 
     // create the directory if it doesn't exist
     if (!fs::exists(dir)) {
         fs::create_directories(dir);
     }
-    // sanitize for file names
-    std::string sanitizedExperimentName = experimentName;
-    std::replace(sanitizedExperimentName.begin(), sanitizedExperimentName.end(), ' ', '-');
 
-    std::string intervalModeString = intervalMode == 0 ? "two-interval" : "single-interval";
-    std::string displayModeString = displayMode == 0 ? "SDR" : "HDR";
 
-    std::string base = intervalModeString + "_" + displayModeString + "_" + 
-        sanitizedExperimentName + "_" + participantId + "_" + getDateString();
+    std::string base = "G" + std::to_string(groupNumber) + "_" + "S" + std::to_string(sessionNumber) + "_" + "B" + std::to_string(blockNumber) + "_" + participantId; // +"_" + getDateString();
 
     int counter = 0;
     fs::path outPath;
@@ -91,20 +92,20 @@ fs::path CSV::buildPath(const std::string& participantId, const std::string& exp
 
     return outPath;
 }
-
-std::string CSV::getDateString() const {
-    auto now = std::chrono::system_clock::now();
-    std::time_t t = std::chrono::system_clock::to_time_t(now);
-
-    std::tm tm;
-
-    localtime_s(&tm, &t);
-
-    std::ostringstream ss;
-    ss << std::put_time(&tm, "%Y-%m-%d");
-    return ss.str();
-}
-
+// not currently needed
+//std::string CSV::getDateString() const {
+//    auto now = std::chrono::system_clock::now();
+//    std::time_t t = std::chrono::system_clock::to_time_t(now);
+//
+//    std::tm tm;
+//
+//    localtime_s(&tm, &t);
+//
+//    std::ostringstream ss;
+//    ss << std::put_time(&tm, "%Y-%m-%d");
+//    return ss.str();
+//}
+//
 std::string CSV::getDateTimeString() const {
     auto now = std::chrono::system_clock::now();
     std::time_t t = std::chrono::system_clock::to_time_t(now);
