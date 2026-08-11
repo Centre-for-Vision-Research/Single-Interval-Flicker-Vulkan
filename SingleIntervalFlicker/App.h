@@ -5,6 +5,7 @@
 #include "config.h"
 #include "csv.h"
 #include "utils.h"
+#include "ParticipantDialog.h"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -23,12 +24,15 @@ enum class TrialPhase {
 };
 
 struct TrialResult {
-    int         index;
-    std::string imageName;
-    std::string viewingMode;
-    int         answer;
-    int         actual;
-    double      reactionTime;
+    int             index;
+    std::string     imageName;
+    std::string     viewingMode;
+    int             answer;
+    int             actual;
+    int          reactionTimeMS;
+    int             positionX;
+    int             positionY;
+    std::string     codec;
 };
 
 class App {
@@ -39,7 +43,7 @@ public:
     App(const App&) = delete;
     App& operator=(const App&) = delete;
 
-    bool init(const std::string& configPath);
+    bool init(const std::string& configPath, std::string& trialsPath, ExperimentInfo experimentInfo);
     void run();
 
 private:
@@ -71,6 +75,7 @@ private:
 
     Renderer m_renderer; // backend renderer
     Config m_config;
+    ExperimentInfo m_experimentInfo;
     int m_trialIndex = 0;
 
     // used when in two interval mode. tracks whether 

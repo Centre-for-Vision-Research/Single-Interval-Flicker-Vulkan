@@ -162,20 +162,19 @@
     <ClCompile Include="Config.cpp" />
     <ClCompile Include="csv.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="ParticipantDialog.cpp" />
     <ClCompile Include="Render.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="csv.h" />
+    <ClInclude Include="ParticipantDialog.h" />
     <ClInclude Include="Render.h" />
     <ClInclude Include="RenderTypes.h" />
-    <ClInclude Include="selectVariantDialog.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Shaders.h" />
     <ClInclude Include="Utils.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="selectVariantDialog.rc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\C\PPM Experiment\instructions\responsescreen_L.ppm">
@@ -218,6 +217,11 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
+    <None Include="participants.csv" />
+    <None Include="trials.csv" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="SingleIntervalFlicker.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
