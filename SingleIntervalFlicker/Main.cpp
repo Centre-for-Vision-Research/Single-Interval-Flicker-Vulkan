@@ -7,19 +7,19 @@
 
 int main(int argc, char** argv)
 {
-    if (argc < 2)
+    if (argc < 3)
     {
-        std::cerr << "Usage: App.exe <config.json>\n";
+        std::cerr << "Usage: App.exe <config.json> <participants.csv> <trials.csv>\n";
         return -1;
     }
 
-    // sets defaults 
+    //// sets defaults 
 
-    std::string configPath = (argc > 1) ? argv[1] : "./config.json";
+    //std::string configPath = (argc > 1) ? argv[1] : "./config.json";
 
-    std::string participantsPath = (argc > 2) ? argv[2] : "./participants.csv";
+    //std::string participantsPath = (argc > 2) ? argv[2] : "./participants.csv";
 
-    std::string trialsPath = (argc > 3) ? argv[3] : "./trials.csv";
+    //std::string trialsPath = (argc > 3) ? argv[3] : "./trials.csv";
 
     App app;
 
