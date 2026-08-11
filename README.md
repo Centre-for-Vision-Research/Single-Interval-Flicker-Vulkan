@@ -107,7 +107,7 @@ jpeg,image2,1,3,1,0
 dsc,image2,1,3,1,0
 ...
 ```
-### Prepare particiapants.csv file. Rows in the participant csv will automatically populate _dialog box_ popup at start of block. 
+### Prepare particiapants.csv file. Rows in the participant csv will automatically populate the dropdown in the dialog window popup at start of block. 
 ```
 subject_id,age,gender,group
 p001,19,F,1
