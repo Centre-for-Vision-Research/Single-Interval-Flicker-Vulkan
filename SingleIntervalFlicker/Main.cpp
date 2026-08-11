@@ -13,13 +13,12 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    //// sets defaults 
 
-    //std::string configPath = (argc > 1) ? argv[1] : "./config.json";
+    std::string configPath = (argc > 1) ? argv[1] : "./config.json";
 
-    //std::string participantsPath = (argc > 2) ? argv[2] : "./participants.csv";
+    std::string participantsPath = (argc > 2) ? argv[2] : "./participants.csv";
 
-    //std::string trialsPath = (argc > 3) ? argv[3] : "./trials.csv";
+    std::string trialsPath = (argc > 3) ? argv[3] : "./trials.csv";
 
     App app;
 
