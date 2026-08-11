@@ -16,7 +16,26 @@ This project is the implementation of an ISO Flicker Paradigm experiment using V
 
 ## Running + Config
 * Ensure that both monitors (are HDR compatible, and) are set to HDR mode in Windows (there will be an error otherwise)
-* To run: `SingleIntervalFlicker.exe [config here]`
+* To run: ` ./SingleIntervalFlicker.exe <config.json> <participants.csv> <trials.csv>`
+* Example output (output folder as described in config.json):
+```
+Participant ID: p001
+Participant Age: 19
+Participant Gender: F
+Group Number: 1
+Session Number: 1
+Block Number: 1
+Display Mode: SDR
+Interval Mode: single-interval
+Start Time: 2026-08-08 16:03:24
+
+Index,Codec,Image,Answer,Position-X,Position-Y,Mode,Response,Duration (ms),Subject
+0,jpeg,image0,0,3,1,Mono Left,1,800,p001
+1,dsc,image0,0,3,1,Mono Left,1,500,p001
+```
+_In single interval mode, response time is counted from the moment the images are shown. In two interval mode, response time is counted from the moment the response waiting screen is shown._
+  
+* Program will prompt participant selection dropdown (populated via participants.csv), block # and session #
 * The graphics pipeline is only configured to work with PPM images (for now...)
 * This experiment uses one window for both monitors. Thus, it is important that the display orientation is correct in settings.
   * The **primary monitor** will be considered the left most monitor. Please ensure that the Windows display settings reflect this:
@@ -28,9 +47,7 @@ This project is the implementation of an ISO Flicker Paradigm experiment using V
   ______________________      ______________________
 Left monitor                  Right monitor
  ```
-Prepare the image directory and record the folder paths in the config file. Each image should have 2 permuations per folder, ie `image0_L.ppm` and `image0_R.ppm`. The degraded images should be organized by their respective codecs, in folders.
-
-Here is an example of the image directory structure:
+### Prepare the image directory and record the folder paths in the config file. Each image should have 2 permutations per folder, ie `image0_L.ppm` and `image0_R.ppm`. The degraded images should be organized by their respective codecs, in folders.
 ```
 .
 ├── reference/
@@ -53,8 +70,7 @@ Here is an example of the image directory structure:
 ```
 
 
-Here is an example configuration file 
-
+### Prepare a configuration file (i.e. config.json):
 * Display Mode:
    * 0 --> SDR
    * 1 --> HDR (preferred, SDR fallback)
@@ -76,7 +92,7 @@ Here is an example configuration file
 }
 ```
 
-* Prepare a trials.csv file, creating the order of trials, and indicate which image should flicker with the 'answer' column. Codec must refer to an existing folder with the same name. Image name must exist in corresponding codec folder. Indicate x and y position of fixation (if applicable, or just 0,0)
+### Prepare a trials.csv file, creating the order of trials, and indicate which image should flicker with the 'answer' column. Codec must refer to an existing folder with the same name. Image name must exist in corresponding codec folder. Indicate x and y position of fixation (if applicable, or just 0,0)
    * Stereo mode:
         * 0 --> Stereo
         * 1 --> Mono Left
@@ -91,8 +107,7 @@ jpeg,image2,1,3,1,0
 dsc,image2,1,3,1,0
 ...
 ```
-* Prepare a particiapants.csv file. Rows in the participant csv will automatically populate Dialog Box at start of trial. 
-
+### Prepare particiapants.csv file. Rows in the participant csv will automatically populate _dialog box_ popup at start of block. 
 ```
 subject_id,age,gender,group
 p001,19,F,1
@@ -103,25 +118,5 @@ p003,18,F,2
 ## Experiment
 * This program assumes an experimental setup with two identical monitors.
 * Left and right arrow keys are used to answer, or gamepad's X and Y buttons.
-
-* To run: ` ./SingleIntervalFlicker.exe <config.json> <participants.csv> <trials.csv>`
-* Program will prompt participant selection dropdown (populated via participants.csv), block # and session #
-* Example output (output folder as described in config.json):
-```
-Participant ID: p001
-Participant Age: 19
-Participant Gender: F
-Group Number: 1
-Session Number: 1
-Block Number: 1
-Display Mode: SDR
-Interval Mode: single-interval
-Start Time: 2026-08-08 16:03:24
-
-Index,Codec,Image,Answer,Position-X,Position-Y,Mode,Response,Duration (ms),Subject
-0,jpeg,image0,0,3,1,Mono Left,1,800,p001
-1,dsc,image0,0,3,1,Mono Left,1,500,p001
-```
-**In single interval mode, response time is counted from the moment the images are shown. In two interval mode, response time is counted from the moment the response waiting screen is shown. **
 
 `This program was created by Katya Kozlovsky under The Centre for Vision Research at York University, Toronto, Canada.`
