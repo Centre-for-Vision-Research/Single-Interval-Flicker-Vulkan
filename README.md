@@ -32,12 +32,11 @@ Display Mode: SDR
 Interval Mode: single-interval
 Start Time: 2026-08-08 16:03:24
 
-Index,Codec,Image,Answer,Position-X,Position-Y,Mode,Response,Duration (ms),Subject
-0,jpeg,image0,0,3,1,Mono Left,1,800,p001
-1,dsc,image0,0,3,1,Mono Left,1,500,p001
+Index,Codec,Image,Answer,Position-X,Position-Y,Mode,Response,Fixation Time,Display Time
+0,fraunhofer_b,image0,1,3,1,Mono Left,1,2000,3000
+1,dsc,image0,0,3,1,Mono Left,1,2000,3000
 ```
 
-_In single interval mode, response time is counted from the moment the images are shown. In two interval mode, response time is counted from the moment the response waiting screen is shown._
 
 - Program will prompt participant selection dropdown (populated via participants.csv), block # and session #
 - The graphics pipeline is only configured to work with PPM images (for now...)

@@ -45,6 +45,6 @@ struct FrameScene {
     int  flickerIndex = 0;
 
     // crosshair is always drawn
-    bool drawCrosshair = true;
+    bool drawCrosshair = false;
     
 };
