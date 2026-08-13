@@ -95,8 +95,8 @@ bool App::init(const std::string& configPath, std::string& trialsPath, Experimen
                 "Position-Y",
                 "Mode",
                 "Response",
-                "Duration (ms)",
-                "Subject"
+                "Fixation Time",
+                "Display Time"
             },
         m_config.outputDirectory.string());
 
@@ -338,6 +338,8 @@ void App::recordResponse(int key) {
         case 2:  result.viewingMode = "Mono Right";  break;
         default: result.viewingMode = "N/A";    break;
     }
+        
+    // not sure if reaction time is needed
     if (m_config.intervalMode == 0) { // 2 interval mode - start counting reaction tiome from response start
         result.reactionTimeMS = (glfwGetTime() - m_responseStart) * 1000; // get time in ms
 
@@ -357,8 +359,8 @@ void App::recordResponse(int key) {
         std::to_string(result.positionY),
         result.viewingMode,
         std::to_string(result.actual),
-        std::to_string(result.reactionTimeMS),
-        m_experimentInfo.participantId
+        std::to_string((int)(m_config.waitTime * 1000)),
+        std::to_string((int)(m_config.imageTime * 1000)),
     });
 
     m_trialIndex++;
