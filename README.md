@@ -5,9 +5,10 @@ This project is the implementation of an ISO Flicker Paradigm experiment using V
 ## Installation & Setup Instructions
 
 1. Install [VulkanSDK](https://vulkan.lunarg.com/sdk/home)
-2. Install [OpenCV](https://opencv.org/releases/)
-3. Install [GLFW](https://www.glfw.org/download.html)
-4. Update environment variables as follows:
+    _Ensure that the 'Shader Toolchain Debug Symbols - 64-bit' option is checked under the 'Select Components' step of the installation._
+3. Install [OpenCV](https://opencv.org/releases/)
+4. Install [GLFW](https://www.glfw.org/download.html)
+5. Update environment variables as follows:
 
 | Variable    | Value                                                   |
 | ----------- | ------------------------------------------------------- |
