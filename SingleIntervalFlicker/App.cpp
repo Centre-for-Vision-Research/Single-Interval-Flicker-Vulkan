@@ -1,7 +1,8 @@
 #include "app.h"
 
 #include <Windows.h>
-#include <mmsystem.h>#include "render.h" 
+#include <mmsystem.h>
+#include "render.h" 
 #include <chrono>
 #include <stdexcept>
 #include <thread>
